@@ -1,0 +1,612 @@
+{
+  "name": "бот дает описание товара для WB",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1024,
+        -48
+      ],
+      "id": "750ca644-216e-41c6-addc-26bb1c499be7",
+      "name": "Telegram Trigger",
+      "webhookId": "5616fdb0-5cba-4c40-8fad-9035879e75bc",
+      "credentials": {
+        "telegramApi": {
+          "id": "K0FI0uhYckDxmm3X",
+          "name": "product_description_WB_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const update = $json;\n\nconst msg =\n  update.message ||\n  update.edited_message ||\n  update.channel_post ||\n  {};\n\nconst chatId = msg.chat?.id || null;\nconst userId = msg.from?.id || null;\nconst messageId = msg.message_id || null;\n\nconst text = (msg.text || msg.caption || \"\").trim();\n\nconst photos = msg.photo || [];\nconst largestPhoto = photos.length ? photos[photos.length - 1] : null;\n\nlet inputType = \"unknown\";\n\nif (text === \"/start\" || text === \"/help\" || text.startsWith(\"/start \")) {\n  inputType = \"start\";\n} else if (largestPhoto && text) {\n  inputType = \"image_with_caption\";\n} else if (largestPhoto) {\n  inputType = \"image\";\n} else if (text) {\n  inputType = \"text\";\n}\n\nreturn {\n  json: {\n    update_id: update.update_id || null,\n    chat_id: chatId,\n    user_id: userId,\n    message_id: messageId,\n    input_type: inputType,\n    text,\n    photo_file_id: largestPhoto?.file_id || null,\n    photo_file_unique_id: largestPhoto?.file_unique_id || null,\n    raw_message: msg\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -864,
+        -48
+      ],
+      "id": "52328f78-4b7b-4d09-97d9-6c9a6c5a3405",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.input_type }}",
+                    "rightValue": "start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "98c34b2c-7fe9-45b0-95ef-3365703c7313"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "45855d7f-7379-476c-b037-5d60a94e66fd",
+                    "leftValue": "={{ $json.input_type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a590b491-1a62-429a-bd2b-e3f5660c960d",
+                    "leftValue": "={{ $json.input_type }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f4d7a887-167c-4f89-a878-5ac40d64f5b8",
+                    "leftValue": "={{ $json.input_type }}",
+                    "rightValue": "image_with_caption",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -704,
+        -96
+      ],
+      "id": "6e8b823c-efa8-4ea8-ae3f-be02d00aff12",
+      "name": "Switch — Route Input"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "Отправьте название товара и, если есть, характеристики.\nЧем точнее входные данные, тем лучше результат.\n\nПримеры:\nПлохо:\nОчки\nЛучше:\nОчки для плавания стартовые, антифог, защита UV, силиконовый уплотнитель, двойной ремешок, футляр в комплекте.\n\nВажно:\nдля очков уточняйте назначение:\n- для плавания;\n- солнцезащитные;\n- с диоптриями;\n- защитные;\n- компьютерные;\n- детские;\n- спортивные.\n\nМожно отправить текстом или скриншотом (картинкой) - наименование/характеристики.\nБот вернёт:\n1. SEO-ключи\n2. Наименование для карточки\n3. Описание товара",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -512,
+        -320
+      ],
+      "id": "644b0aab-7f9a-496c-930b-d3c95981254f",
+      "name": "Telegram — Start",
+      "webhookId": "e6e99d0e-98b9-4d32-ba87-adf02e507e33",
+      "credentials": {
+        "telegramApi": {
+          "id": "K0FI0uhYckDxmm3X",
+          "name": "product_description_WB_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"model\": \"gpt-4.1-mini\",\n  \"store\": false,\n  \"instructions\": \"Ты анализируешь текстовое описание товара для маркетплейса Wildberries. Извлеки только фактическую информацию о товаре. Не выдумывай характеристики. Верни только валидный JSON без markdown.\",\n  \"input\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"input_text\",\n          \"text\": `Текст пользователя:\\n${$json.text}\\n\\nВерни JSON строго в формате:\\n{\\n  \"source_type\": \"text\",\\n  \"brand\": \"\",\\n  \"product_name_raw\": \"\",\\n  \"category\": \"\",\\n  \"product_type\": \"\",\\n  \"functional_purpose\": \"\",\\n  \"colors\": [],\\n  \"materials\": [],\\n  \"characteristics\": {},\\n  \"package_contents\": [],\\n  \"target_audience\": [],\\n  \"use_cases\": [],\\n  \"detected_benefits\": [],\\n  \"missing_important_data\": [],\\n  \"clarifying_questions\": []\\n}\\n\\nПравила:\\n- если название слишком общее, добавь это в missing_important_data;\\n- если товар относится к очкам, обязательно проверь, понятно ли назначение: для плавания, солнцезащитные, с диоптриями, защитные, компьютерные и т.д.;\\n- не добавляй чужие бренды;\\n- не добавляй медицинские или профессиональные обещания без фактов;\\n- пиши на русском языке.`\n        }\n      ]\n    }\n  ],\n  \"text\": {\n    \"format\": {\n      \"type\": \"json_object\"\n    }\n  },\n  \"temperature\": 0.2,\n  \"max_output_tokens\": 1800\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        -256
+      ],
+      "id": "24ae4a00-04b3-40c9-abc4-11c5afb955ed",
+      "name": "OpenAI Extract From Text",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "qzkqKc6O7y9f5oQw",
+          "name": "OpenAI Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function getOpenAIText(data) {\n  if (typeof data.output_text === \"string\") {\n    return data.output_text;\n  }\n\n  const parts = [];\n\n  for (const output of data.output || []) {\n    for (const content of output.content || []) {\n      if (typeof content.text === \"string\") {\n        parts.push(content.text);\n      }\n    }\n  }\n\n  return parts.join(\"\\n\").trim();\n}\n\nfunction parseJsonLoose(text) {\n  let cleaned = String(text || \"\").trim();\n\n  cleaned = cleaned\n    .replace(/^```json\\s*/i, \"\")\n    .replace(/^```\\s*/i, \"\")\n    .replace(/```$/i, \"\")\n    .trim();\n\n  const first = cleaned.indexOf(\"{\");\n  const last = cleaned.lastIndexOf(\"}\");\n\n  if (first !== -1 && last !== -1 && last > first) {\n    cleaned = cleaned.slice(first, last + 1);\n  }\n\n  return JSON.parse(cleaned);\n}\n\nconst response = $input.first().json;\nconst base = $(\"Code in JavaScript\").first().json;\n\nconst modelText = getOpenAIText(response);\n\nlet product;\n\ntry {\n  product = parseJsonLoose(modelText);\n} catch (error) {\n  throw new Error(`Cannot parse product JSON. Raw model text:\\n${modelText}`);\n}\n\nreturn [\n  {\n    json: {\n      chat_id: base.chat_id,\n      user_id: base.user_id,\n      input_type: base.input_type,\n      user_text: base.text,\n      product\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -368
+      ],
+      "id": "1e570780-f4f5-4ce5-a68e-c5fadc226b46",
+      "name": "Parse Product JSON"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"model\": \"gpt-4.1-mini\",\n  \"store\": false,\n  \"instructions\": \"Ты специалист по SEO карточек товаров для Wildberries. Сформируй SEO-ключи по группам. Не выдумывай свойства товара. Не добавляй чужие бренды. Верни только валидный JSON без markdown.\",\n  \"input\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"input_text\",\n          \"text\": `Данные товара:\n${JSON.stringify($json.product, null, 2)}\n\nСформируй SEO-ключи для карточки товара.\n\nВерни JSON строго в формате:\n{\n  \"high_frequency_keywords\": [],\n  \"middle_frequency_keywords\": [],\n  \"long_tail_keywords\": [],\n  \"attribute_keywords\": [],\n  \"avoid_keywords\": []\n}\n\nПояснение:\n- high_frequency_keywords — широкие поисковые запросы;\n- middle_frequency_keywords — уточнённые запросы;\n- long_tail_keywords — длинные поисковые фразы;\n- attribute_keywords — ключи по характеристикам товара;\n- avoid_keywords — слова, которые не стоит использовать.\n\nПравила:\n- не добавляй чужие бренды;\n- не добавляй нерелевантные ключи;\n- не используй ключи, которые не подтверждаются данными товара;\n- не делай SEO-спам;\n- ключи должны быть пригодны для естественного использования в названии и описании;\n- если данных мало, не расширяй товар за пределы фактов;\n- если часть характеристик отсутствует, не используй их как подтверждённые свойства товара.`\n        }\n      ]\n    }\n  ],\n  \"text\": {\n    \"format\": {\n      \"type\": \"json_object\"\n    }\n  },\n  \"temperature\": 0.2,\n  \"max_output_tokens\": 1800\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        -368
+      ],
+      "id": "33d9fd82-40a2-430c-a015-f25dc6ed456f",
+      "name": "OpenAI Generate SEO",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "qzkqKc6O7y9f5oQw",
+          "name": "OpenAI Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function getOpenAIText(data) {\n  if (typeof data.output_text === \"string\") {\n    return data.output_text;\n  }\n\n  const parts = [];\n\n  for (const output of data.output || []) {\n    for (const content of output.content || []) {\n      if (typeof content.text === \"string\") {\n        parts.push(content.text);\n      }\n    }\n  }\n\n  return parts.join(\"\\n\").trim();\n}\n\nfunction parseJsonLoose(text) {\n  let cleaned = String(text || \"\").trim();\n\n  cleaned = cleaned\n    .replace(/^```json\\s*/i, \"\")\n    .replace(/^```\\s*/i, \"\")\n    .replace(/```$/i, \"\")\n    .trim();\n\n  const first = cleaned.indexOf(\"{\");\n  const last = cleaned.lastIndexOf(\"}\");\n\n  if (first !== -1 && last !== -1 && last > first) {\n    cleaned = cleaned.slice(first, last + 1);\n  }\n\n  return JSON.parse(cleaned);\n}\n\nconst response = $input.first().json;\nconst prev = $(\"Parse Product JSON\").first().json;\n\nconst modelText = getOpenAIText(response);\n\nlet seoKeywords;\n\ntry {\n  seoKeywords = parseJsonLoose(modelText);\n} catch (error) {\n  throw new Error(`Cannot parse SEO JSON. Raw model text:\\n${modelText}`);\n}\n\nreturn [\n  {\n    json: {\n      ...prev,\n      seo_keywords: seoKeywords\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -368
+      ],
+      "id": "7ef09f3d-ccb5-4e8b-b1b9-094f121f6f8e",
+      "name": "Parse SEO JSON"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"model\": \"gpt-5.4\",\n  \"store\": false,\n  \"instructions\": \"Ты пишешь контент для карточки товара на Wildberries. Используй SEO-ключи естественно. Не выдумывай характеристики. Не добавляй чужие бренды, ссылки, хештеги и эмодзи. Верни только валидный JSON без markdown.\",\n  \"input\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"input_text\",\n          \"text\": `Данные товара:\n${JSON.stringify($json.product, null, 2)}\n\nSEO-ключи:\n${JSON.stringify($json.seo_keywords, null, 2)}\n\nСделай:\n1. Наименование товара для карточки.\n2. Описание товара.\n3. Краткий список преимуществ.\n\nВерни JSON строго в формате:\n{\n  \"title\": \"\",\n  \"description\": \"\",\n  \"advantages\": [],\n  \"used_keywords\": [],\n  \"not_used_keywords\": []\n}\n\nТребования к наименованию:\n- до 60 символов;\n- без повторов слов;\n- без перечисления всех характеристик;\n- должно быть понятно, что это за товар;\n- для очков обязательно указывать функциональность: для плавания, солнцезащитные, с диоптриями, защитные, компьютерные и т.д.;\n- не использовать чужие бренды;\n- не использовать слова, которых нет в данных товара, если они меняют смысл.\n\nТребования к описанию:\n- до 1800 символов;\n- использовать SEO-ключи естественно;\n- не перечислять ключи списком внутри описания;\n- не добавлять ссылки, хештеги, эмодзи;\n- не выдумывать характеристики;\n- не использовать агрессивные обещания;\n- описание должно соответствовать фактическим данным товара;\n- если важных данных не хватает, просто не упоминай эти свойства;\n- запрещено писать в описании фразы вроде: \"нет информации\", \"не указано\", \"отсутствуют данные\", \"несмотря на отсутствие информации\";\n- не добавляй преимущества, если они не следуют из входных данных;\n- блок missing_important_data существует отдельно, поэтому в описание его не вставляй.`\n        }\n      ]\n    }\n  ],\n  \"text\": {\n    \"format\": {\n      \"type\": \"json_object\"\n    }\n  },\n  \"temperature\": 0.3,\n  \"max_output_tokens\": 2600\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        -128
+      ],
+      "id": "590c3f9b-ece3-46f1-b284-4d28308c0801",
+      "name": "OpenAI Generate Card",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "qzkqKc6O7y9f5oQw",
+          "name": "OpenAI Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function getOpenAIText(data) {\n  if (typeof data.output_text === \"string\" && data.output_text.trim()) {\n    return data.output_text.trim();\n  }\n\n  const parts = [];\n\n  for (const output of data.output || []) {\n    for (const content of output.content || []) {\n      if (typeof content.text === \"string\" && content.text.trim()) {\n        parts.push(content.text);\n      }\n    }\n  }\n\n  return parts.join(\"\\n\").trim();\n}\n\nfunction parseJsonLoose(text) {\n  let cleaned = String(text || \"\").trim();\n\n  cleaned = cleaned\n    .replace(/^```json\\s*/i, \"\")\n    .replace(/^```\\s*/i, \"\")\n    .replace(/```$/i, \"\")\n    .trim();\n\n  const first = cleaned.indexOf(\"{\");\n  const last = cleaned.lastIndexOf(\"}\");\n\n  if (first !== -1 && last !== -1 && last > first) {\n    cleaned = cleaned.slice(first, last + 1);\n  }\n\n  if (!cleaned) {\n    throw new Error(\"Empty text. No JSON to parse.\");\n  }\n\n  return JSON.parse(cleaned);\n}\n\nfunction list(value) {\n  if (Array.isArray(value)) {\n    if (value.length === 0) return \"—\";\n    return value.map(x => `• ${x}`).join(\"\\n\");\n  }\n\n  if (typeof value === \"string\" && value.trim()) {\n    return `• ${value.trim()}`;\n  }\n\n  return \"—\";\n}\n\nfunction formatCharacteristics(obj) {\n  if (!obj || typeof obj !== \"object\" || !Object.keys(obj).length) {\n    return \"—\";\n  }\n\n  return Object.entries(obj)\n    .map(([key, value]) => {\n      const v = Array.isArray(value) ? value.join(\", \") : value;\n      return `• ${key}: ${v}`;\n    })\n    .join(\"\\n\");\n}\n\nfunction cleanMissingData(value) {\n  if (!Array.isArray(value)) return [];\n\n  const ignored = [\n    \"цена\",\n    \"стоимость\",\n    \"visible_price\",\n    \"price\"\n  ];\n\n  return value.filter(item => {\n    const text = String(item || \"\").toLowerCase().trim();\n    return text && !ignored.includes(text);\n  });\n}\n\nconst response = $input.first().json;\nconst prev = $(\"Parse SEO JSON\").first().json;\n\nconst modelText = getOpenAIText(response);\n\nlet card;\n\ntry {\n  card = parseJsonLoose(modelText);\n} catch (error) {\n  throw new Error(`Cannot parse card JSON. Raw model text:\\n${modelText}`);\n}\n\nconst product = prev.product || {};\nconst seo = prev.seo_keywords || {};\nconst missingData = cleanMissingData(product.missing_important_data);\n\nconst message = `Готово.\n\nНайденные данные товара:\nБренд: ${product.brand || \"—\"}\nИсходное название: ${product.product_name_raw || \"—\"}\nКатегория: ${product.category || \"—\"}\nТип товара: ${product.product_type || \"—\"}\nНазначение: ${product.functional_purpose || \"—\"}\nАртикул: ${product.article || \"—\"}\n\nХарактеристики:\n${formatCharacteristics(product.characteristics)}\n\nЦвет:\n${list(product.colors)}\n\nМатериалы:\n${list(product.materials)}\n\nКомплектация:\n${list(product.package_contents)}\n\nSEO-ключи\n\nВысокочастотные:\n${list(seo.high_frequency_keywords)}\n\nСреднечастотные:\n${list(seo.middle_frequency_keywords)}\n\nНизкочастотные / long-tail:\n${list(seo.long_tail_keywords)}\n\nАтрибутные:\n${list(seo.attribute_keywords)}\n\nНе использовать:\n${list(seo.avoid_keywords)}\n\nНаименование для карточки:\n${card.title || \"—\"}\n\nОписание:\n${card.description || \"—\"}\n\nПреимущества:\n${list(card.advantages)}\n\nНе хватает данных:\n${list(missingData)}\n\nИспользованные ключи:\n${list(card.used_keywords)}\n`;\n\nreturn [\n  {\n    json: {\n      chat_id: prev.chat_id,\n      user_id: prev.user_id,\n      input_type: prev.input_type,\n      product,\n      seo_keywords: seo,\n      card,\n      message\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -128
+      ],
+      "id": "53f5c814-36ed-4a35-9112-ce7632eacd88",
+      "name": "Format Telegram Answer"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        608,
+        -128
+      ],
+      "id": "864f74c0-e73a-4a36-a82d-9ecb7aab8030",
+      "name": "Telegram Send Result",
+      "webhookId": "aa16913d-c19b-432e-9a7f-2e476dfc0331",
+      "credentials": {
+        "telegramApi": {
+          "id": "K0FI0uhYckDxmm3X",
+          "name": "product_description_WB_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.photo_file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -432,
+        -32
+      ],
+      "id": "cb86e27c-7b41-4f54-88ad-af5e1b27a34f",
+      "name": "Telegram Get File",
+      "webhookId": "e9a92480-05e7-41bf-8bdc-ab7d4f049892",
+      "credentials": {
+        "telegramApi": {
+          "id": "K0FI0uhYckDxmm3X",
+          "name": "product_description_WB_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nif (!items.length) {\n  throw new Error(\"No input items from Telegram Get File.\");\n}\n\nconst item = items[0];\n\nconst binaryKeys = Object.keys(item.binary || {});\nif (!binaryKeys.length) {\n  throw new Error(\"No binary image data found. Check Telegram Get File node: Download must be enabled.\");\n}\n\nconst binaryKey = binaryKeys[0];\nconst bin = item.binary[binaryKey];\n\n// В self-hosted n8n с binaryDataMode=filesystem bin.data может быть не base64,\n// поэтому читаем реальный бинарный файл через helper.\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\n\nif (!buffer || !buffer.length) {\n  throw new Error(\"Binary buffer is empty.\");\n}\n\nlet mimeType = bin.mimeType || \"image/jpeg\";\nconst fileName = (bin.fileName || \"\").toLowerCase();\n\nconst allowed = [\"image/jpeg\", \"image/png\", \"image/gif\", \"image/webp\"];\n\nif (!allowed.includes(mimeType)) {\n  if (fileName.endsWith(\".png\")) {\n    mimeType = \"image/png\";\n  } else if (fileName.endsWith(\".webp\")) {\n    mimeType = \"image/webp\";\n  } else if (fileName.endsWith(\".gif\")) {\n    mimeType = \"image/gif\";\n  } else {\n    mimeType = \"image/jpeg\";\n  }\n}\n\nconst base64 = buffer.toString(\"base64\");\n\nreturn [\n  {\n    json: {\n      ...item.json,\n      image_mime_type: mimeType,\n      image_size_bytes: buffer.length,\n      image_data_url: `data:${mimeType};base64,${base64}`\n    },\n    binary: item.binary\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -32
+      ],
+      "id": "557ac20d-0d08-4094-9a0b-0714dff5ace9",
+      "name": "Prepare Image Data URL"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"model\": \"gpt-4.1-mini\",\n  \"store\": false,\n  \"instructions\": \"Ты анализируешь изображение со скриншотом карточки товара, названия или характеристик маркетплейса. Главная задача — извлечь полное наименование товара. Вторая задача — извлечь характеристики, которые можно уверенно прочитать. Не выдумывай невидимые данные. Верни только валидный JSON без markdown.\",\n  \"input\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"input_text\",\n          \"text\": `Подпись пользователя, если есть:\n${$json.text || \"\"}\n\nИзвлеки данные с изображения и верни JSON строго в формате:\n{\n  \"source_type\": \"image\",\n  \"brand\": \"\",\n  \"product_name_raw\": \"\",\n  \"category\": \"\",\n  \"product_type\": \"\",\n  \"functional_purpose\": \"\",\n  \"colors\": [],\n  \"materials\": [],\n  \"characteristics\": {},\n  \"package_contents\": [],\n  \"target_audience\": [],\n  \"use_cases\": [],\n  \"detected_benefits\": [],\n  \"description_fragment\": \"\",\n  \"visible_price\": \"\",\n  \"article\": \"\",\n  \"missing_important_data\": [],\n  \"clarifying_questions\": [],\n  \"low_confidence_fields\": []\n}\n\nГлавная задача:\n- получить полное наименование товара;\n- получить характеристики, если они видны;\n- получить комплектацию, если она видна;\n- получить бренд, если он виден;\n- получить артикул, если он виден.\n\nПравила:\n- извлекай только то, что видно на изображении или написано в подписи;\n- если текст читается плохо, добавь поле в low_confidence_fields;\n- если часть текста обрезана, не восстанавливай её догадками;\n- если есть подпись пользователя, используй её как дополнительный источник;\n- если подпись и изображение противоречат друг другу, укажи конфликт в low_confidence_fields;\n- не добавляй свойства товара, которых нет на изображении;\n- не добавляй маркетинговые обещания;\n- пиши на русском языке.`\n        },\n        {\n          \"type\": \"input_image\",\n          \"image_url\": $json.image_data_url\n        }\n      ]\n    }\n  ],\n  \"text\": {\n    \"format\": {\n      \"type\": \"json_object\"\n    }\n  },\n  \"temperature\": 0.1,\n  \"max_output_tokens\": 2200\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -64,
+        -32
+      ],
+      "id": "a89afb6c-cf69-454c-ac94-82fba71cce5f",
+      "name": "OpenAI Extract From Image",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "qzkqKc6O7y9f5oQw",
+          "name": "OpenAI Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "Не понял формат сообщения.\n\nОтправьте один из вариантов:\n1. название товара текстом;\n2. название + характеристики текстом;\n3. скриншот карточки или характеристик как фото.\n\nВажно: скриншот отправляйте именно как фото, не как файл.\n\n",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -448,
+        176
+      ],
+      "id": "4dd7adfc-6c8f-416b-be0f-dce7517f489a",
+      "name": "Telegram — Error",
+      "webhookId": "e6e99d0e-98b9-4d32-ba87-adf02e507e33",
+      "credentials": {
+        "telegramApi": {
+          "id": "K0FI0uhYckDxmm3X",
+          "name": "product_description_WB_bot"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch — Route Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch — Route Input": {
+      "main": [
+        [
+          {
+            "node": "Telegram — Start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI Extract From Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Get File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Get File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Extract From Text": {
+      "main": [
+        [
+          {
+            "node": "Parse Product JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Product JSON": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Generate SEO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Generate SEO": {
+      "main": [
+        [
+          {
+            "node": "Parse SEO JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse SEO JSON": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Generate Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Generate Card": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Answer": {
+      "main": [
+        [
+          {
+            "node": "Telegram Send Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Get File": {
+      "main": [
+        [
+          {
+            "node": "Prepare Image Data URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Image Data URL": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Extract From Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Extract From Image": {
+      "main": [
+        [
+          {
+            "node": "Parse Product JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "84483417-f981-4210-8071-21564dc33086",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d9dc8879cfa867ccc3fbafa27fea0f52afdd0f03d58658b94263324fec25b1e8"
+  },
+  "id": "1dOlubjLaREUBgA3",
+  "tags": []
+}
